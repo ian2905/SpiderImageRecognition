@@ -40,9 +40,12 @@ Validation Count: 1,530
 
 #globals
 image_size = (500, 500)
+input_size = (350, 350)
 batch_size = 40
 num_classes = 5
-epochs = 50;
+epochs = 50
+
+
 
 
 data_augmentation = keras.Sequential(
@@ -76,13 +79,21 @@ def make_model(shape, num_classes):
 
 train_ds = keras.preprocessing.image_dataset_from_directory(
     'C:/Users/clous/OneDrive/Desktop/CS/CS_Proj/Spider/Images/INat/train5',
-    image_size = image_size,
-    batch_size = batch_size
+    validation_split=0.2,
+    subset="training",
+    seed=1337,
+    image_size = input_size,
+    batch_size = batch_size,
+    label_mode = 'categorical'
 )
 val_ds = keras.preprocessing.image_dataset_from_directory(
-    'C:/Users/clous/OneDrive/Desktop/CS/CS_Proj/Spider/Images/INat/val5',
-    image_size = image_size,
-    batch_size = batch_size
+    'C:/Users/clous/OneDrive/Desktop/CS/CS_Proj/Spider/Images/INat/train5',
+    validation_split=0.2,
+    subset="validation",
+    seed=1337,
+    image_size = input_size,
+    batch_size = batch_size,
+    label_mode = 'categorical'
 )
 
 train_ds = train_ds.prefetch(buffer_size=batch_size)
@@ -96,22 +107,61 @@ val_ds = val_ds.prefetch(buffer_size=batch_size)
 
 inputs = keras.Input(shape=(350, 350, 3))
 
-x = CenterCrop(height = 350, width = 350)(inputs)
 x = data_augmentation(inputs)
-x = Rescaling(scale = (1.0 / 255))(x)
 
-x = layers.Conv2D(filters=32, kernel_size=(3, 3), activation="relu")(x)
-x = layers.MaxPooling2D(pool_size=(3, 3))(x)
-x = layers.Conv2D(filters=32, kernel_size=(3, 3), activation="relu")(x)
-x = layers.MaxPooling2D(pool_size=(3, 3))(x)
-x = layers.Conv2D(filters=32, kernel_size=(3, 3), activation="relu")(x)
+# Entry block
+x = layers.Rescaling(1.0 / 255)(x)
+x = layers.Conv2D(32, 3, strides=2, padding="same")(x)
+x = layers.BatchNormalization()(x)
+x = layers.Activation("relu")(x)
+
+x = layers.Conv2D(64, 3, padding="same")(x)
+x = layers.BatchNormalization()(x)
+x = layers.Activation("relu")(x)
+
+previous_block_activation = x  # Set aside residual
+
+for size in [128, 256, 512, 728]:
+    x = layers.Activation("relu")(x)
+    x = layers.SeparableConv2D(size, 3, padding="same")(x)
+    x = layers.BatchNormalization()(x)
+
+    x = layers.Activation("relu")(x)
+    x = layers.SeparableConv2D(size, 3, padding="same")(x)
+    x = layers.BatchNormalization()(x)
+
+    x = layers.MaxPooling2D(3, strides=2, padding="same")(x)
+
+    # Project residual
+    residual = layers.Conv2D(size, 1, strides=2, padding="same")(
+        previous_block_activation
+    )
+    x = layers.add([x, residual])  # Add back residual
+    previous_block_activation = x  # Set aside next residual
+
+x = layers.SeparableConv2D(1024, 3, padding="same")(x)
+x = layers.BatchNormalization()(x)
+x = layers.Activation("relu")(x)
 
 x = layers.GlobalAveragePooling2D()(x)
 
 x = layers.Dropout(0.5)(x)
 
-outputs = layers.Dense(num_classes, activation="softmax")(x)
-
+outputs = layers.Dense(num_classes, activation="softmax",)(x)
 model = keras.Model(inputs=inputs, outputs=outputs)
 
 #model.summmary()
+
+callbacks = [
+    keras.callbacks.ModelCheckpoint("save_at_{epoch}.h5"),
+]
+model.compile(
+    optimizer="adam",
+    loss="categorical_crossentropy",
+    metrics=["accuracy"],
+)
+model.fit(
+    train_ds, epochs=epochs, callbacks=callbacks, validation_data=val_ds,
+)
+
+
