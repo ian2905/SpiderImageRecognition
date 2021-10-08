@@ -10,23 +10,17 @@ Sources/Help from:
     https://keras.io/examples/vision/image_classification_from_scratch/
 """
 
-
-
-
-
-
-
 import numpy as np
 import tensorflow as tf
 import pydot as pydot
 import pydotplus as pydotplus
 import graphviz as graphviz
+import matplotlib.pyplot as plt
 from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras.layers.experimental.preprocessing import CenterCrop
 from tensorflow.keras.layers.experimental.preprocessing import Rescaling
 from keras import utils
-import matplotlib.pyplot as plt
 
 
 """
@@ -41,13 +35,21 @@ Validation Count: 1,530
 #globals
 image_size = (500, 500)
 input_size = (350, 350)
+shape = (350, 350, 3) #(pixels, pixels, RGB)
 batch_size = 40
 num_classes = 5
 #epochs = 50
 epochs = 200
 
+#randomly transform images to reduce overfitting
+data_augmentation = keras.Sequential(
+    [
+        layers.RandomFlip("horizontal"),
+        layers.RandomRotation(0.1),
+    ]
+)
 
-print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+#-----------------------------------------------------------------------------------------------------------------------
 
 def make_modelbasic(shape, num_classes):
     inputs = keras.Input(shape)
@@ -67,22 +69,38 @@ def make_modelbasic(shape, num_classes):
     x = layers.Dropout(0.5)(x)
 
     outputs = layers.Dense(num_classes, activation="softmax")(x)
-    return keras.Model(inputs=inputs, outputs=outputs)
 
-def make_model2(shape, num_classes):
+    model = keras.Model(inputs=inputs, outputs=outputs)
+
+    # compile model with optimizer, loss, and metrics
+    model.compile(
+        optimizer="adam",
+        loss="categorical_crossentropy",
+        metrics=["accuracy"],
+        # metrics=["accuracy", keras.metrics.SparseCategoricalAccuracy(name="CatAcc")],
+    )
+    return model
+"""
+    Description:
+        This model is a varient of the Xception network that I found on the Keras main website https://keras.io/examples/vision/image_classification_from_scratch/
+        
+        Current val accuracy best: ~55% after 200 epochs, batchsize = 40
+"""
+def make_modelXception(shape, num_classes):
 
     inputs = keras.Input(shape)
 
+    x = CenterCrop(height=350, width=350)(inputs)
     x = data_augmentation(inputs)
 
     # Entry block
     x = layers.Rescaling(1.0 / 255)(x)
     x = layers.Conv2D(32, 3, strides=2, padding="same")(x)
-    x = layers.BatchNormalization()(x)
+    #x = layers.BatchNormalization()(x)
     x = layers.Activation("relu")(x)
 
     x = layers.Conv2D(64, 3, padding="same")(x)
-    x = layers.BatchNormalization()(x)
+    #x = layers.BatchNormalization()(x)
     x = layers.Activation("relu")(x)
 
     previous_block_activation = x  # Set aside residual
@@ -90,11 +108,11 @@ def make_model2(shape, num_classes):
     for size in [128, 256, 512, 728]:
         x = layers.Activation("relu")(x)
         x = layers.SeparableConv2D(size, 3, padding="same")(x)
-        x = layers.BatchNormalization()(x)
+        #x = layers.BatchNormalization()(x)
 
         x = layers.Activation("relu")(x)
         x = layers.SeparableConv2D(size, 3, padding="same")(x)
-        x = layers.BatchNormalization()(x)
+        #x = layers.BatchNormalization()(x)
 
         x = layers.MaxPooling2D(3, strides=2, padding="same")(x)
 
@@ -114,7 +132,28 @@ def make_model2(shape, num_classes):
     x = layers.Dropout(0.5)(x)
 
     outputs = layers.Dense(num_classes, activation="softmax", )(x)
-    return keras.Model(inputs=inputs, outputs=outputs)
+    model = keras.Model(inputs=inputs, outputs=outputs)
+
+    # compile model with optimizer, loss, and metrics
+    model.compile(
+        optimizer="adam",
+        loss="categorical_crossentropy",
+        metrics=["accuracy"],
+        # metrics=["accuracy", keras.metrics.SparseCategoricalAccuracy(name="CatAcc")],
+    )
+    return model
+
+
+
+
+
+
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+#start
+
+print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
 #create training and validation datasets from locally stored images
 train_ds = keras.preprocessing.image_dataset_from_directory(
@@ -136,14 +175,6 @@ val_ds = keras.preprocessing.image_dataset_from_directory(
     label_mode = 'categorical'
 )
 
-#randomly transform images to reduce overfitting
-data_augmentation = keras.Sequential(
-    [
-        layers.RandomFlip("horizontal"),
-        layers.RandomRotation(0.1),
-    ]
-)
-
 train_ds = train_ds.prefetch(buffer_size=batch_size)
 val_ds = val_ds.prefetch(buffer_size=batch_size)
 
@@ -154,7 +185,7 @@ val_ds = val_ds.prefetch(buffer_size=batch_size)
 #   print(labels.dtype)
 
 #call model function
-model = make_modelbasic(shape=(350, 350, 3), num_classes=num_classes)
+model = make_modelXception(shape=shape, num_classes=num_classes)
 
 #model.summmary()
 
@@ -163,16 +194,16 @@ callbacks = [
     keras.callbacks.ModelCheckpoint("save_at_{epoch}.h5"),
 ]
 
-#compile model with optimizer, loss, and metrics
-model.compile(
-    optimizer="adam",
-    loss="categorical_crossentropy",
-    metrics=["accuracy". keras.metrics.SparseCategoricalAccuracy(name="CatAcc")],
-)
-
 #train model
-model.fit(
+history = model.fit(
     train_ds, epochs=epochs, callbacks=callbacks, validation_data=val_ds,
 )
-
+"""
+tuner = keras_tuner.tuners.Hyperband(
+  make_modelbasic_tuner,
+  objective='val_loss',
+  max_epochs=100,
+  max_trials=200,
+  executions_per_trial=2)
+"""
 
