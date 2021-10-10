@@ -36,10 +36,10 @@ Validation Count: 1,530
 image_size = (500, 500)
 input_size = (350, 350)
 shape = (350, 350, 3) #(pixels, pixels, RGB)
-batch_size = 40
+batch_size = 10
 num_classes = 5
 #epochs = 50
-epochs = 200
+epochs = 100
 
 #randomly transform images to reduce overfitting
 data_augmentation = keras.Sequential(
@@ -85,6 +85,7 @@ def make_modelbasic(shape, num_classes):
         This model is a varient of the Xception network that I found on the Keras main website https://keras.io/examples/vision/image_classification_from_scratch/
         
         Current val accuracy best: ~55% after 200 epochs, batchsize = 40
+        Val accuracy with batch normalization: ~63% after 100 epochs, batchsize = 10(to reduce memory usage)
 """
 def make_modelXception(shape, num_classes):
 
@@ -96,11 +97,11 @@ def make_modelXception(shape, num_classes):
     # Entry block
     x = layers.Rescaling(1.0 / 255)(x)
     x = layers.Conv2D(32, 3, strides=2, padding="same")(x)
-    #x = layers.BatchNormalization()(x)
+    x = layers.BatchNormalization()(x)
     x = layers.Activation("relu")(x)
 
     x = layers.Conv2D(64, 3, padding="same")(x)
-    #x = layers.BatchNormalization()(x)
+    x = layers.BatchNormalization()(x)
     x = layers.Activation("relu")(x)
 
     previous_block_activation = x  # Set aside residual
@@ -108,11 +109,11 @@ def make_modelXception(shape, num_classes):
     for size in [128, 256, 512, 728]:
         x = layers.Activation("relu")(x)
         x = layers.SeparableConv2D(size, 3, padding="same")(x)
-        #x = layers.BatchNormalization()(x)
+        x = layers.BatchNormalization()(x)
 
         x = layers.Activation("relu")(x)
         x = layers.SeparableConv2D(size, 3, padding="same")(x)
-        #x = layers.BatchNormalization()(x)
+        x = layers.BatchNormalization()(x)
 
         x = layers.MaxPooling2D(3, strides=2, padding="same")(x)
 
