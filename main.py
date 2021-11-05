@@ -16,12 +16,16 @@ import pydot as pydot
 import pydotplus as pydotplus
 import graphviz as graphviz
 import matplotlib.pyplot as plt
+from keras_preprocessing.image import ImageDataGenerator
 from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras.layers.experimental.preprocessing import CenterCrop
 from tensorflow.keras.layers.experimental.preprocessing import Rescaling
 from keras import utils
+from tensorflow.python.ops.init_ops_v2 import glorot_uniform
 
+from Resnet50Model import Resnet50Model
+from XceptionModel import XceptionModel
 
 """
 Image info
@@ -32,179 +36,101 @@ Validation Count: 1,530
 
 """
 
-#globals
+# globals
 image_size = (500, 500)
 input_size = (350, 350)
-shape = (350, 350, 3) #(pixels, pixels, RGB)
-batch_size = 10
+shape = (350, 350, 3) # (pixels, pixels, RGB)
+edge_size = 350
+batch_size = 15
 num_classes = 5
-#epochs = 50
-epochs = 100
+# epochs = 50
+epochs = 200
 
-#randomly transform images to reduce overfitting
-data_augmentation = keras.Sequential(
-    [
-        layers.RandomFlip("horizontal"),
-        layers.RandomRotation(0.1),
+
+class Main:
+
+    xception_model = XceptionModel(input_size, num_classes)
+    resnet50_model = Resnet50Model(input_size, num_classes)
+
+    print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+
+    # create training and validation datasets from locally stored images
+    train_ds = keras.preprocessing.image_dataset_from_directory(
+        'C:/Users/clous/OneDrive/Desktop/CS/CS_Proj/Spider/Images/INat/train5',
+        validation_split=0.2,
+        subset="training",
+        seed=1337,
+        image_size = input_size,
+        batch_size = batch_size,
+        labels = "inferred",
+        label_mode = 'categorical'
+    )
+    val_ds = keras.preprocessing.image_dataset_from_directory(
+        'C:/Users/clous/OneDrive/Desktop/CS/CS_Proj/Spider/Images/INat/train5',
+        validation_split=0.2,
+        subset="validation",
+        seed=1337,
+        image_size = input_size,
+        batch_size = batch_size,
+        labels = "inferred",
+        label_mode = 'categorical'
+    )
+    train_ds = train_ds.prefetch(buffer_size=batch_size)
+
+    val_ds = val_ds.prefetch(buffer_size=batch_size)
+
+    '''
+    #for creating numpy arrays
+    train_datagen = ImageDataGenerator(zoom_range=0.15,width_shift_range=0.2,height_shift_range=0.2,shear_range=0.15)
+    test_datagen = ImageDataGenerator()
+    
+    train_generator = train_datagen.flow_from_directory("C:/Users/clous/OneDrive/Desktop/CS/CS_Proj/Spider/Images/INat/train5",target_size=(350, 350),batch_size=32,shuffle=True,class_mode='categorical')
+    test_generator = test_datagen.flow_from_directory("C:/Users/clous/OneDrive/Desktop/CS/CS_Proj/Spider/Images/INat/val5",target_size=(350,350),batch_size=32,shuffle=False,class_mode='categorical')
+    '''
+
+    # for data, labels in dataset:
+    #   print(data.shape)
+    #   print(data.dtype)
+    #   print(labels.shape)
+    #   print(labels.dtype)
+
+    # call model function
+
+    # Xception model
+    model = xception_model.make_model()
+
+    # resnet-50 model
+    # model = ResNet50(input_shape=shape)
+
+    # es = keras.EarlyStopping(monitor='val_accuracy', mode='max', verbose=1, patience=20)
+
+    # model.summmary()
+
+    # setup checkpointing
+    callbacks = [
+        keras.callbacks.ModelCheckpoint("save_at_{epoch}.h5"),
+
+        # setup early stopping
+            # mode: min or max | decreasing or increasing
+            # verbose: "1" makes it print out the epoch it stops on
+            # patience: number of epochs of stagnation until it stops
+        keras.callbacks.EarlyStopping(monitor='val_accuracy', mode='max', verbose=1, patience=20),
     ]
-)
 
-#-----------------------------------------------------------------------------------------------------------------------
-
-def make_modelbasic(shape, num_classes):
-    inputs = keras.Input(shape)
-
-    x = CenterCrop(height=350, width=350)(inputs)
-    x = data_augmentation(inputs)
-    x = Rescaling(scale=(1.0 / 255))(x)
-
-    x = layers.Conv2D(filters=32, kernel_size=(3, 3), activation="relu")(x)
-    x = layers.MaxPooling2D(pool_size=(3, 3))(x)
-    x = layers.Conv2D(filters=32, kernel_size=(3, 3), activation="relu")(x)
-    x = layers.MaxPooling2D(pool_size=(3, 3))(x)
-    x = layers.Conv2D(filters=32, kernel_size=(3, 3), activation="relu")(x)
-
-    x = layers.GlobalAveragePooling2D()(x)
-
-    x = layers.Dropout(0.5)(x)
-
-    outputs = layers.Dense(num_classes, activation="softmax")(x)
-
-    model = keras.Model(inputs=inputs, outputs=outputs)
-
-    # compile model with optimizer, loss, and metrics
-    model.compile(
-        optimizer="adam",
-        loss="categorical_crossentropy",
-        metrics=["accuracy"],
-        # metrics=["accuracy", keras.metrics.SparseCategoricalAccuracy(name="CatAcc")],
+    # train model
+    history = model.fit(
+        train_ds, epochs=epochs, callbacks=callbacks, validation_data=val_ds,
     )
-    return model
-"""
-    Description:
-        This model is a varient of the Xception network that I found on the Keras main website https://keras.io/examples/vision/image_classification_from_scratch/
-        
-        Current val accuracy best: ~55% after 200 epochs, batchsize = 40
-        Val accuracy with batch normalization: ~63% after 100 epochs, batchsize = 10(to reduce memory usage)
-"""
-def make_modelXception(shape, num_classes):
-
-    inputs = keras.Input(shape)
-
-    x = CenterCrop(height=350, width=350)(inputs)
-    x = data_augmentation(inputs)
-
-    # Entry block
-    x = layers.Rescaling(1.0 / 255)(x)
-    x = layers.Conv2D(32, 3, strides=2, padding="same")(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.Activation("relu")(x)
-
-    x = layers.Conv2D(64, 3, padding="same")(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.Activation("relu")(x)
-
-    previous_block_activation = x  # Set aside residual
-
-    for size in [128, 256, 512, 728]:
-        x = layers.Activation("relu")(x)
-        x = layers.SeparableConv2D(size, 3, padding="same")(x)
-        x = layers.BatchNormalization()(x)
-
-        x = layers.Activation("relu")(x)
-        x = layers.SeparableConv2D(size, 3, padding="same")(x)
-        x = layers.BatchNormalization()(x)
-
-        x = layers.MaxPooling2D(3, strides=2, padding="same")(x)
-
-        # Project residual
-        residual = layers.Conv2D(size, 1, strides=2, padding="same")(
-            previous_block_activation
-        )
-        x = layers.add([x, residual])  # Add back residual
-        previous_block_activation = x  # Set aside next residual
-
-    x = layers.SeparableConv2D(1024, 3, padding="same")(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.Activation("relu")(x)
-
-    x = layers.GlobalAveragePooling2D()(x)
-
-    x = layers.Dropout(0.5)(x)
-
-    outputs = layers.Dense(num_classes, activation="softmax", )(x)
-    model = keras.Model(inputs=inputs, outputs=outputs)
-
-    # compile model with optimizer, loss, and metrics
-    model.compile(
-        optimizer="adam",
-        loss="categorical_crossentropy",
-        metrics=["accuracy"],
-        # metrics=["accuracy", keras.metrics.SparseCategoricalAccuracy(name="CatAcc")],
-    )
-    return model
+    """
+    tuner = keras_tuner.tuners.Hyperband(
+      make_modelbasic_tuner,
+      objective='val_loss',
+      max_epochs=100,
+      max_trials=200,
+      executions_per_trial=2)
+    """
 
 
-
-
-
-
-
-
-#-----------------------------------------------------------------------------------------------------------------------
-#start
-
-print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
-
-#create training and validation datasets from locally stored images
-train_ds = keras.preprocessing.image_dataset_from_directory(
-    'C:/Users/clous/OneDrive/Desktop/CS/CS_Proj/Spider/Images/INat/train5',
-    validation_split=0.2,
-    subset="training",
-    seed=1337,
-    image_size = input_size,
-    batch_size = batch_size,
-    label_mode = 'categorical'
-)
-val_ds = keras.preprocessing.image_dataset_from_directory(
-    'C:/Users/clous/OneDrive/Desktop/CS/CS_Proj/Spider/Images/INat/train5',
-    validation_split=0.2,
-    subset="validation",
-    seed=1337,
-    image_size = input_size,
-    batch_size = batch_size,
-    label_mode = 'categorical'
-)
-
-train_ds = train_ds.prefetch(buffer_size=batch_size)
-val_ds = val_ds.prefetch(buffer_size=batch_size)
-
-#for data, labels in dataset:
-#   print(data.shape)
-#   print(data.dtype)
-#   print(labels.shape)
-#   print(labels.dtype)
-
-#call model function
-model = make_modelXception(shape=shape, num_classes=num_classes)
-
-#model.summmary()
-
-#setup checkpointing
-callbacks = [
-    keras.callbacks.ModelCheckpoint("save_at_{epoch}.h5"),
-]
-
-#train model
-history = model.fit(
-    train_ds, epochs=epochs, callbacks=callbacks, validation_data=val_ds,
-)
-"""
-tuner = keras_tuner.tuners.Hyperband(
-  make_modelbasic_tuner,
-  objective='val_loss',
-  max_epochs=100,
-  max_trials=200,
-  executions_per_trial=2)
-"""
+# -----------------------------------------------------------------------------------------------------------------------
+# start
 
