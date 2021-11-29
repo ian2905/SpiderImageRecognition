@@ -77,7 +77,7 @@ class XceptionModel:
 
         x = layers.Dropout(0.5)(x)
         x = layers.Flatten()(x)
-        outputs = layers.Dense(self.num_classes, activation="softmax", )(x)
+        outputs = layers.Dense(self.num_classes, activation="softmax")(x)
         model = keras.Model(inputs=inputs, outputs=outputs)
 
         # compile model with optimizer, loss, and metrics

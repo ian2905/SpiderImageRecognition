@@ -4,6 +4,7 @@ Ian Clouston
 TODO:
 Notes to self:
     Check out the corrupted image remover code for the server input. found at https://keras.io/examples/vision/image_classification_from_scratch/
+    Check to see if resizing to (224, 224) helps validation accuracy
 
 Steps left:
 
@@ -48,7 +49,7 @@ shape = (350, 350, 3) # (pixels, pixels, RGB)
 edge_size = 350
 batch_size = 15
 num_classes = 5
-epochs = 1
+epochs = 100
 # epochs = 200
 
 xception_model = XceptionModel(shape, num_classes)
@@ -134,7 +135,7 @@ tuner = keras_tuner.tuners.Hyperband(
   executions_per_trial=2)
 """
 
-model.save('model.h5')
+model.save('model_new.h5')
 
 
 
