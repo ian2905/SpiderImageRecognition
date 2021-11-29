@@ -85,7 +85,7 @@ def __identity_block(x, f, filters, stage, block):
 
 class Resnet50Model:
 
-    def _init_(self, input_shape, num_classes):
+    def __init__(self, input_shape, num_classes):
         self.input_shape = input_shape
         self.num_classes = num_classes
 
@@ -107,24 +107,24 @@ class Resnet50Model:
         x = layers.MaxPooling2D((3, 3), strides=(2, 2))(x)
 
         x = self.convolutional_block(x, f=3, filters=[64, 64, 256], stage=2, block='a', s=1)
-        x = identity_block(x, 3, [64, 64, 256], stage=2, block='b')
-        x = identity_block(x, 3, [64, 64, 256], stage=2, block='c')
+        x = self.identity_block(x, 3, [64, 64, 256], stage=2, block='b')
+        x = self.identity_block(x, 3, [64, 64, 256], stage=2, block='c')
 
-        x = convolutional_block(x, f=3, filters=[128, 128, 512], stage=3, block='a', s=2)
-        x = identity_block(x, 3, [128, 128, 512], stage=3, block='b')
-        x = identity_block(x, 3, [128, 128, 512], stage=3, block='c')
-        x = identity_block(x, 3, [128, 128, 512], stage=3, block='d')
+        x = self.convolutional_block(x, f=3, filters=[128, 128, 512], stage=3, block='a', s=2)
+        x = self.identity_block(x, 3, [128, 128, 512], stage=3, block='b')
+        x = self.identity_block(x, 3, [128, 128, 512], stage=3, block='c')
+        x = self.identity_block(x, 3, [128, 128, 512], stage=3, block='d')
 
-        x = convolutional_block(x, f=3, filters=[256, 256, 1024], stage=4, block='a', s=2)
-        x = identity_block(x, 3, [256, 256, 1024], stage=4, block='b')
-        x = identity_block(x, 3, [256, 256, 1024], stage=4, block='c')
-        x = identity_block(x, 3, [256, 256, 1024], stage=4, block='d')
-        x = identity_block(x, 3, [256, 256, 1024], stage=4, block='e')
-        x = identity_block(x, 3, [256, 256, 1024], stage=4, block='f')
+        x = self.convolutional_block(x, f=3, filters=[256, 256, 1024], stage=4, block='a', s=2)
+        x = self.identity_block(x, 3, [256, 256, 1024], stage=4, block='b')
+        x = self.identity_block(x, 3, [256, 256, 1024], stage=4, block='c')
+        x = self.identity_block(x, 3, [256, 256, 1024], stage=4, block='d')
+        x = self.identity_block(x, 3, [256, 256, 1024], stage=4, block='e')
+        x = self.identity_block(x, 3, [256, 256, 1024], stage=4, block='f')
 
-        x = convolutional_block(x, f=3, filters=[512, 512, 2048], stage=5, block='a', s=2)
-        x = identity_block(x, 3, [512, 512, 2048], stage=5, block='b')
-        x = identity_block(x, 3, [512, 512, 2048], stage=5, block='c')
+        x = self.convolutional_block(x, f=3, filters=[512, 512, 2048], stage=5, block='a', s=2)
+        x = self.identity_block(x, 3, [512, 512, 2048], stage=5, block='b')
+        x = self.identity_block(x, 3, [512, 512, 2048], stage=5, block='c')
 
         x = layers.AveragePooling2D(pool_size=(2, 2), padding='same')(x)
         # ...alternatively...
