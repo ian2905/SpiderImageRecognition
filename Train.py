@@ -3,8 +3,8 @@ Ian Clouston
 
 TODO:
 Notes to self:
-    Check out the corrupted image remover code for the server input. found at https://keras.io/examples/vision/image_classification_from_scratch/
-    Check to see if resizing to (224, 224) helps validation accuracy
+    Test out a larger dataset
+    Combine all the species into families to bump up image counts
 
 Steps left:
 
@@ -40,15 +40,34 @@ Image Size: max 500 HxW
 Train Count: 40,687
 Validation Count: 1,530
 
+Models
+    model.h5
+        ~66% with 5 classes and batch 15(xception)
+    model_smalldata.h5
+        ~55% with 5 class of half dataset size and batch 15(xception)
+    model_10.h5
+        ~60% with 10 classes and batch 15(xception)
+    model_res50_224.h5
+        ~31% with 5 classes, size(224, 224), and batch 15
+    model_100.h5
+        ~56% val accutancy with 100 classes, size (350, 350), and batch size 16
+        Shows that accuracy is not super affected by increasing class size
+            This likely means that I can test changes to the base model on low class size training, and the results will
+            apply to high class size training
+    model_5_299.h5
+        ~55% accuracy with 5 classes,size (299, 299), and batch 16
+    model_100_299_5.h5
+        ~55% accuracy with 100 classes, size (299, 299), and batch size 5(Exception)
 """
 
 # globals
 image_size = (500, 500)
-input_size = (350, 350)
-shape = (350, 350, 3) # (pixels, pixels, RGB)
-edge_size = 350
+input_size = (299, 299)
+shape = (299, 299, 3) # (pixels, pixels, RGB)
+# input_size = (224, 224)
+# shape = (224, 224, 3) # (pixels, pixels, RGB)
 batch_size = 15
-num_classes = 5
+num_classes = 7
 epochs = 100
 # epochs = 200
 
@@ -61,7 +80,7 @@ print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
 # create training and validation datasets from locally stored images
 train_ds = keras.preprocessing.image_dataset_from_directory(
-    'C:/Users/clous/OneDrive/Desktop/CS/CS_Proj/Spider/Images/INat/train5',
+    'C:/Users/clous/OneDrive/Desktop/CS/CS_Proj/Spider/Images/INat/train7big',
     validation_split=0.2,
     subset="training",
     seed=1337,
@@ -71,7 +90,7 @@ train_ds = keras.preprocessing.image_dataset_from_directory(
     label_mode = 'categorical'
 )
 val_ds = keras.preprocessing.image_dataset_from_directory(
-    'C:/Users/clous/OneDrive/Desktop/CS/CS_Proj/Spider/Images/INat/train5',
+    'C:/Users/clous/OneDrive/Desktop/CS/CS_Proj/Spider/Images/INat/train7big',
     validation_split=0.2,
     subset="validation",
     seed=1337,
@@ -89,9 +108,11 @@ val_ds = val_ds.prefetch(buffer_size=batch_size)
 train_datagen = ImageDataGenerator(zoom_range=0.15,width_shift_range=0.2,height_shift_range=0.2,shear_range=0.15)
 test_datagen = ImageDataGenerator()
 
-train_generator = train_datagen.flow_from_directory("C:/Users/clous/OneDrive/Desktop/CS/CS_Proj/Spider/Images/INat/train5",target_size=(350, 350),batch_size=32,shuffle=True,class_mode='categorical')
-test_generator = test_datagen.flow_from_directory("C:/Users/clous/OneDrive/Desktop/CS/CS_Proj/Spider/Images/INat/val5",target_size=(350,350),batch_size=32,shuffle=False,class_mode='categorical')
+train_generator = train_datagen.flow_from_directory("C:/Users/clous/OneDrive/Desktop/CS/CS_Proj/Spider/Images/INat/train5",target_size=input_size,batch_size=batch_size,shuffle=True,class_mode='categorical')
+test_generator = test_datagen.flow_from_directory("C:/Users/clous/OneDrive/Desktop/CS/CS_Proj/Spider/Images/INat/val5",target_size=input_size,batch_size=batch_size,shuffle=False,class_mode='categorical')
 '''
+
+
 
 # for data, labels in dataset:
 #   print(data.shape)
@@ -105,7 +126,7 @@ test_generator = test_datagen.flow_from_directory("C:/Users/clous/OneDrive/Deskt
 model = xception_model.make_model()
 
 # resnet-50 model
-# model = ResNet50(input_shape=shape)
+# model = resnet50_model.make_model()
 
 # es = keras.EarlyStopping(monitor='val_accuracy', mode='max', verbose=1, patience=20)
 
@@ -113,7 +134,7 @@ model = xception_model.make_model()
 
 # setup checkpointing
 callbacks = [
-    # keras.callbacks.ModelCheckpoint("save_at_{epoch}.h5"),
+    keras.callbacks.ModelCheckpoint("save_at_{epoch}.h5"),
 
     # setup early stopping
         # mode: min or max | decreasing or increasing
@@ -135,15 +156,14 @@ tuner = keras_tuner.tuners.Hyperband(
   executions_per_trial=2)
 """
 
-model.save('model_new.h5')
+model.save('model_7_big.h5')
 
 
 
-
-def load_deep_model(self, model):
-    # can specify a directory if you need to
-    loaded_model = tf.keras.models.load_model("model.h5")
-    return loaded_model
+# def load_deep_model(self, model):
+#     # can specify a directory if you need to
+#     loaded_model = tf.keras.models.load_model("model.h5")
+#     return loaded_model
 
 # get a session and save the loaded model to it
 # with tf.keras.backend.get_session() as sess:

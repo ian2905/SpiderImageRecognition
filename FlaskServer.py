@@ -16,6 +16,8 @@ import tensorflow as tf
 app = flask.Flask(__name__)
 model = None
 num_classes = 5
+image_shape = (350, 350)
+port = 5005
 classes = ['Eratigena_duellica', 'Loxosceles_reclusa', 'Latrodectus_geometricus', 'Latrodectus_mactans', 'Parasteatoda_tepidariorum']
 
 
@@ -39,6 +41,7 @@ def prepare_image(image, target):
         image = image.convert("RGB")
 
     # resize the input image and preprocess it
+    # TODO: make sure this is the right format to make predictions off of for the model
     image = image.resize(target)
     image = img_to_array(image)
     image = np.expand_dims(image, axis=0)
@@ -52,6 +55,7 @@ def predict():
     # initialize the data dictionary that will be returned from the
     # view
     data = {"success": False}
+    print("Recieved request")
 
     # ensure an image was properly uploaded to our endpoint
     if flask.request.method == "POST":
@@ -61,7 +65,7 @@ def predict():
             image = Image.open(io.BytesIO(image))
 
             # preprocess the image and prepare it for classification
-            image = prepare_image(image, target=(350, 350))
+            image = prepare_image(image, target=image_shape)
 
             # classify the input image and then initialize the list
             # of predictions to return to the client
@@ -71,16 +75,15 @@ def predict():
             # [Class1, geometricus, Class3, duellica, Class5]
             # results = imagenet_utils.decode_predictions(preds)
             data["predictions"] = []
+            data["success"] = False
 
             count = 0
             # add labels to each probability
             for x in classes:
                 data["predictions"].append({"species": x, "probability": float(preds[0][count])})
+                if float(preds[0][count]) > .6:
+                    data["success"] = True
                 count = count + 1
-
-
-            # indicate that the request was a success
-            data["success"] = True
 
     # return the data dictionary as a JSON response
     return flask.jsonify(data)
@@ -91,4 +94,4 @@ if __name__ == "__main__":
     print(("* Loading Keras model and Flask starting server..."
         "please wait until server has fully started"))
     load_model()
-    app.run()
+    app.run(host="0.0.0.0", port=port)

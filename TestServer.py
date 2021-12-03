@@ -5,7 +5,7 @@ import requests
 
 # initialize the Keras REST API endpoint URL along with the input
 # image path
-KERAS_REST_API_URL = "http://localhost:5000/predict"
+KERAS_REST_API_URL = "http://localhost:5005/predict"
 IMAGE_PATH = "TestImages/xxh7k3u6cpt41.jpg"
 
 # load the input image and construct the payload for the request
