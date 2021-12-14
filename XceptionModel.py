@@ -28,10 +28,7 @@ class XceptionModel:
 
     """
         Description:
-            This model is a varient of the Xception network that I found on the Keras main website https://keras.io/examples/vision/image_classification_from_scratch/
-
-            Current val accuracy best: ~55% after 200 epochs, batchsize = 40
-            Val accuracy with batch normalization: ~63% after 100 epochs, batchsize = 10(to reduce memory usage), classes=5
+            This model is a varient of the Xception network that I modeled after the one found https://keras.io/examples/vision/image_classification_from_scratch/ by fchollet
     """
     def make_model(self):
         inputs = keras.Input(self.input_shape)

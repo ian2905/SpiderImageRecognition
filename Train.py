@@ -58,16 +58,19 @@ Models
         ~55% accuracy with 5 classes,size (299, 299), and batch 16
     model_100_299_5.h5
         ~55% accuracy with 100 classes, size (299, 299), and batch size 5(Exception)
+    model_family
+        ~80% with 11 classes, size (299, 299), and batch size 15. Significantly larger image count due to grouping 
+        spiders into families
 """
 
 # globals
 image_size = (500, 500)
-input_size = (299, 299)
-shape = (299, 299, 3) # (pixels, pixels, RGB)
-# input_size = (224, 224)
-# shape = (224, 224, 3) # (pixels, pixels, RGB)
+# input_size = (299, 299)
+# shape = (299, 299, 3) # (pixels, pixels, RGB)
+input_size = (224, 224)
+shape = (224, 224, 3) # (pixels, pixels, RGB)
 batch_size = 15
-num_classes = 7
+num_classes = 11
 epochs = 100
 # epochs = 200
 
@@ -80,7 +83,7 @@ print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
 # create training and validation datasets from locally stored images
 train_ds = keras.preprocessing.image_dataset_from_directory(
-    'C:/Users/clous/OneDrive/Desktop/CS/CS_Proj/Spider/Images/INat/train7big',
+    'C:/Users/clous/OneDrive/Desktop/CS/CS_Proj/Spider/Images/INat/trainfamily',
     validation_split=0.2,
     subset="training",
     seed=1337,
@@ -90,7 +93,7 @@ train_ds = keras.preprocessing.image_dataset_from_directory(
     label_mode = 'categorical'
 )
 val_ds = keras.preprocessing.image_dataset_from_directory(
-    'C:/Users/clous/OneDrive/Desktop/CS/CS_Proj/Spider/Images/INat/train7big',
+    'C:/Users/clous/OneDrive/Desktop/CS/CS_Proj/Spider/Images/INat/trainfamily',
     validation_split=0.2,
     subset="validation",
     seed=1337,
@@ -123,10 +126,10 @@ test_generator = test_datagen.flow_from_directory("C:/Users/clous/OneDrive/Deskt
 # call model function
 
 # Xception model
-model = xception_model.make_model()
+# model = xception_model.make_model()
 
 # resnet-50 model
-# model = resnet50_model.make_model()
+model = resnet50_model.make_model()
 
 # es = keras.EarlyStopping(monitor='val_accuracy', mode='max', verbose=1, patience=20)
 
@@ -156,7 +159,7 @@ tuner = keras_tuner.tuners.Hyperband(
   executions_per_trial=2)
 """
 
-model.save('model_7_big.h5')
+model.save('model_family_resnet.h5')
 
 
 

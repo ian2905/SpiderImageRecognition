@@ -15,10 +15,12 @@ import tensorflow as tf
 # initialize our Flask application and the Keras model
 app = flask.Flask(__name__)
 model = None
-num_classes = 5
-image_shape = (350, 350)
+num_classes = 11
+image_shape = (299, 299)
 port = 5005
-classes = ['Eratigena_duellica', 'Loxosceles_reclusa', 'Latrodectus_geometricus', 'Latrodectus_mactans', 'Parasteatoda_tepidariorum']
+classes = ['Tarantula', 'Widow Spider', 'Long-Jawed Orb Weaver', 'Jumping Spider', 'Nursery Web Spider',
+           'Cellar Spider', 'Orb-Weaver Spider', 'Lynx Spider', 'Huntsman Spider', 'Tangle-Web Spider',
+           'Crab Spider']
 
 
 #
@@ -27,8 +29,8 @@ def load_model():
     # pre-trained on ImageNet and provided by Keras, but you can
     # substitute in your own networks just as easily)
     global model
-    # model = ResNet50(weights="imagenet")
-    model = keras.models.load_model("model.h5")
+
+    model = keras.models.load_model("model_family.h5")
 
 
 #
@@ -81,7 +83,7 @@ def predict():
             # add labels to each probability
             for x in classes:
                 data["predictions"].append({"species": x, "probability": float(preds[0][count])})
-                if float(preds[0][count]) > .6:
+                if float(preds[0][count]) > .65:
                     data["success"] = True
                 count = count + 1
 
