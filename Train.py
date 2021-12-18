@@ -1,13 +1,6 @@
 """
 Ian Clouston
 
-TODO:
-Notes to self:
-    Test out a larger dataset
-    Combine all the species into families to bump up image counts
-
-Steps left:
-
 
 Sources/Help from:
     https://keras.io/getting_started/intro_to_keras_for_engineers/
@@ -50,7 +43,7 @@ Models
     model_res50_224.h5
         ~31% with 5 classes, size(224, 224), and batch 15
     model_100.h5
-        ~56% val accutancy with 100 classes, size (350, 350), and batch size 16
+        ~56% val accuracy with 100 classes, size (350, 350), and batch size 16
         Shows that accuracy is not super affected by increasing class size
             This likely means that I can test changes to the base model on low class size training, and the results will
             apply to high class size training
@@ -63,12 +56,14 @@ Models
         spiders into families
 """
 
-# globals
+# training parameters
 image_size = (500, 500)
-# input_size = (299, 299)
-# shape = (299, 299, 3) # (pixels, pixels, RGB)
-input_size = (224, 224)
-shape = (224, 224, 3) # (pixels, pixels, RGB)
+# Exception default
+input_size = (299, 299)
+shape = (299, 299, 3) # (pixels, pixels, RGB)
+# Resnet50 default
+# input_size = (224, 224)
+# shape = (224, 224, 3) # (pixels, pixels, RGB)
 batch_size = 15
 num_classes = 11
 epochs = 100
@@ -126,10 +121,10 @@ test_generator = test_datagen.flow_from_directory("C:/Users/clous/OneDrive/Deskt
 # call model function
 
 # Xception model
-# model = xception_model.make_model()
+model = xception_model.make_model()
 
 # resnet-50 model
-model = resnet50_model.make_model()
+# model = resnet50_model.make_model()
 
 # es = keras.EarlyStopping(monitor='val_accuracy', mode='max', verbose=1, patience=20)
 
@@ -150,33 +145,8 @@ callbacks = [
 history = model.fit(
     train_ds, epochs=epochs, callbacks=callbacks, validation_data=val_ds,
 )
-"""
-tuner = keras_tuner.tuners.Hyperband(
-  make_modelbasic_tuner,
-  objective='val_loss',
-  max_epochs=100,
-  max_trials=200,
-  executions_per_trial=2)
-"""
 
 model.save('model_family_resnet.h5')
 
 
-
-# def load_deep_model(self, model):
-#     # can specify a directory if you need to
-#     loaded_model = tf.keras.models.load_model("model.h5")
-#     return loaded_model
-
-# get a session and save the loaded model to it
-# with tf.keras.backend.get_session() as sess:
-#     tf.saved_model.simple_save(
-#         sess,
-#         export_path,
-#         inputs={'input_image': model.input},
-#         outputs={t.name: t for t in model.outputs})
-
-
-# -----------------------------------------------------------------------------------------------------------------------
-# start
 

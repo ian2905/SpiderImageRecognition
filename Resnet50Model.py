@@ -132,7 +132,6 @@ class Resnet50Model:
         # ...alternatively...
         # x = layers.GlobalAveragePooling2D()(x)
 
-        # TODO: add dropout and test training
         x = layers.Dropout(0.5)(x)
 
         base_model = keras.Model(inputs=x_input, outputs=x, name='ResNet50')
